@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angebot Hinzufügen</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="functions.js"></script>
+</head>
+<body>
+<div class="container my-5">
+    <h1 class="mb-4">Angebot Hinzufügen</h1>
+
+    <!-- Eingabeformular -->
+    <form id="offerForm">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="offerTitle" class="form-label">Titel des Angebots</label>
+                <input type="text" class="form-control" id="offerTitle" required>
+            </div>
+            <div class="col-md-6">
+                <label for="targetCustomer" class="form-label">Zielkunde</label>
+                <input type="text" class="form-control" id="targetCustomer" value="Beispielkunde" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="deliveryDate" class="form-label">Zustellungsdatum</label>
+                <input type="date" class="form-control" id="deliveryDate" required>
+            </div>
+            <div class="col-md-6">
+                <label for="customerEmail" class="form-label">Kontakt Email des Kunden</label>
+                <input type="email" class="form-control" id="customerEmail" value="beispiel@kunde.de" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="totalPrice" class="form-label">Gesamtpreis</label>
+                <input type="text" class="form-control" id="totalPrice" value="1000€" readonly>
+            </div>
+        </div>
+    </form>
+
+    <!-- Steuerungsleiste -->
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-primary" onclick="openAddProductModal()">Add Product</button>
+    </div>
+
+    <!-- Angebotsliste -->
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Produkt Id</th>
+            <th>Produkt Name</th>
+            <th>Menge</th>
+            <th>Preis pro Stück</th>
+            <th>Aktionen</th>
+        </tr>
+        </thead>
+        <tbody id="productList">
+        <!-- Dynamische Produktzeilen -->
+        </tbody>
+    </table>
+
+    <!-- Submit Offering Button -->
+    <div class="d-flex justify-content-end mt-4">
+        <button class="btn btn-success" onclick="saveOffering()">Submit Offering</button>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProductForm">
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">Produkt Name</label>
+                        <input type="text" class="form-control" id="productName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productQuantity" class="form-label">Menge</label>
+                        <input type="number" class="form-control" id="productQuantity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productPrice" class="form-label">Preis pro Stück</label>
+                        <input type="text" class="form-control" id="productPrice" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="addProductToOffering()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
