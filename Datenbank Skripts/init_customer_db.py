@@ -1,249 +1,134 @@
 import mysql.connector
+from mysql.connector import errorcode
 
-# Verbindung zur MySQL-Datenbank herstellen
-connection = mysql.connector.connect(
-    host="localhost",
-    user="dbAdmin",
-    password="translation",
-    database="TranslationServiceDB"
+# Datenbank-Konfigurationsparameter
+DB_NAME = "CustomerDatabase"
+TABLES = {}
+
+# Tabellenstruktur basierend auf dem Diagramm
+TABLES['Customer'] = (
+    "CREATE TABLE Customer ("
+    "  Customer_ID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Name VARCHAR(255) NOT NULL,"
+    "  Branche VARCHAR(255),"
+    "  Contact VARCHAR(255),"
+    "  AccountManager VARCHAR(255),"
+    "  OfferingPreference VARCHAR(255)"
+    ")"
 )
 
-cursor = connection.cursor()
+TABLES['Offering'] = (
+    "CREATE TABLE Offering ("
+    "  Offering_ID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Customer_ID INT,"
+    "  Titel VARCHAR(255),"
+    "  Preis DECIMAL(10,2),"
+    "  Status VARCHAR(255),"
+    "  Versanddatum DATE,"
+    "  Kommentar TEXT,"
+    "  FOREIGN KEY (Customer_ID) REFERENCES Customer(Customer_ID)"
+    ")"
+)
+
+TABLES['OfferingItem'] = (
+    "CREATE TABLE OfferingItem ("
+    "  Offering_Item_ID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Offering_ID INT,"
+    "  Product_ID INT,"
+    "  Product_Name VARCHAR(255),"
+    "  Amount INT,"
+    "  Preis DECIMAL(10,2),"
+    "  Kommentar TEXT,"
+    "  FOREIGN KEY (Offering_ID) REFERENCES Offering(Offering_ID)"
+    ")"
+)
+
+TABLES['InstalledBase'] = (
+    "CREATE TABLE InstalledBase ("
+    "  Installed_Base_ID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Customer_ID INT,"
+    "  Product_ID INT,"
+    "  Amount INT,"
+    "  Preis DECIMAL(10,2),"
+    "  Kommentar TEXT,"
+    "  FOREIGN KEY (Customer_ID) REFERENCES Customer(Customer_ID)"
+    ")"
+)
+
+TABLES['IB_Offering_Zuordnung'] = (
+    "CREATE TABLE IB_Offering_Zuordnung ("
+    "  ZuordnungsID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Installed_Base_ID INT,"
+    "  Offering_ID INT,"
+    "  FOREIGN KEY (Installed_Base_ID) REFERENCES InstalledBase(Installed_Base_ID),"
+    "  FOREIGN KEY (Offering_ID) REFERENCES Offering(Offering_ID)"
+    ")"
+)
+
+TABLES['Alt_Neu_Zuordnung'] = (
+    "CREATE TABLE Alt_Neu_Zuordnung ("
+    "  ZuordnungsID INT AUTO_INCREMENT PRIMARY KEY,"
+    "  Installed_Base_ID INT,"
+    "  Offering_Item_ID INT,"
+    "  FOREIGN KEY (Installed_Base_ID) REFERENCES InstalledBase(Installed_Base_ID),"
+    "  FOREIGN KEY (Offering_Item_ID) REFERENCES OfferingItem(Offering_Item_ID)"
+    ")"
+)
+
+# Verbindung zur MySQL-Datenbank herstellen
+def connect_to_database():
+    try:
+        cnx = mysql.connector.connect(
+            user='your_username',  # Benutzername hier eingeben
+            password='your_password'  # Passwort hier eingeben
+        )
+        return cnx
+    except mysql.connector.Error as err:
+        print(f"Fehler: {err}")
+        exit(1)
+
+# Datenbank erstellen
+def create_database(cursor):
+    try:
+        cursor.execute(f"CREATE DATABASE {DB_NAME} DEFAULT CHARACTER SET 'utf8'")
+    except mysql.connector.Error as err:
+        print(f"Fehler beim Erstellen der Datenbank: {err}")
+        exit(1)
 
 # Tabellen erstellen
-tables = {
-    "Hersteller": """
-        CREATE TABLE Hersteller (
-            ID INT PRIMARY KEY,
-            Name CHAR(255)
-        )
-    """,
-    "Betriebssysteme": """
-        CREATE TABLE Betriebssysteme (
-            ID INT PRIMARY KEY,
-            HerstellerID INT,
-            Name CHAR(255),
-            FOREIGN KEY (HerstellerID) REFERENCES Hersteller(ID)
-        )
-    """,
-    "SwitchSerie": """
-        CREATE TABLE SwitchSerie (
-            ID INT PRIMARY KEY,
-            HerstellerID INT,
-            Name CHAR(255),
-            Nummer INT,
-            FOREIGN KEY (HerstellerID) REFERENCES Hersteller(ID)
-        )
-    """,
-    "SwitchModel": """
-        CREATE TABLE SwitchModel (
-            ID INT PRIMARY KEY,
-            SwitchSerieID INT,
-            ProductNumber CHAR(255),
-            Identifier CHAR(255),
-            Airflow CHAR(3),
-            Type CHAR(10),
-            PowerSupplies INT,
-            FanTrays INT,
-            PoEBudget INT,
-            FOREIGN KEY (SwitchSerieID) REFERENCES SwitchSerie(ID)
-        )
-    """,
-    "APSerie": """
-        CREATE TABLE APSerie (
-            ID INT PRIMARY KEY,
-            HerstellerID INT,
-            Name CHAR(255),
-            Type CHAR(255),
-            Usage CHAR(255),
-            Density CHAR(255),
-            WLAN_Standard CHAR(255),
-            Nummer INT,
-            FOREIGN KEY (HerstellerID) REFERENCES Hersteller(ID)
-        )
-    """,
-    "APModel": """
-        CREATE TABLE APModel (
-            ID INT PRIMARY KEY,
-            APSerieID INT,
-            Identifier CHAR(255),
-            ProductNumber CHAR(255),
-            AntennaType CHAR(255),
-            PoEConsume INT,
-            PoEDelivery INT,
-            FOREIGN KEY (APSerieID) REFERENCES APSerie(ID)
-        )
-    """,
-    "ControllerSerie": """
-        CREATE TABLE ControllerSerie (
-            ID INT PRIMARY KEY,
-            HerstellerID INT,
-            Name CHAR(255),
-            Type CHAR(255),
-            FOREIGN KEY (HerstellerID) REFERENCES Hersteller(ID)
-        )
-    """,
-    "Controller": """
-        CREATE TABLE Controller (
-            ID INT PRIMARY KEY,
-            ControllerSerieID INT,
-            ProductNumber CHAR(255),
-            Identifier CHAR(255),
-            UsageClass CHAR(255),
-            DensityClass CHAR(255),
-            FOREIGN KEY (ControllerSerieID) REFERENCES ControllerSerie(ID)
-        )
-    """,
-    "Interfaces": """
-        CREATE TABLE Interfaces (
-            ID INT PRIMARY KEY,
-            Type CHAR(255),
-            MacSecAmount INT,
-            MacSecSpeed CHAR(255),
-            Speeds CHAR(255),
-            Amount INT,
-            PoE_Class CHAR(255),
-            PoE_Delivery_Class CHAR(255),
-            Usage_Class CHAR(255)
-        )
-    """,
-    "Modul": """
-        CREATE TABLE Modul (
-            ID INT PRIMARY KEY,
-            SwitchModelID INT,
-            Identifier CHAR(255),
-            Type CHAR(255),
-            PoEBudget INT,
-            FOREIGN KEY (SwitchModelID) REFERENCES SwitchModel(ID)
-        )
-    """,
-    "Kapazitäten": """
-        CREATE TABLE Kapazitäten (
-            ID INT PRIMARY KEY,
-            ControllerID INT,
-            BetriebssystemID INT,
-            APCapacity INT,
-            ClientCapacity INT,
-            MaxClusterSize INT,
-            FOREIGN KEY (ControllerID) REFERENCES Controller(ID),
-            FOREIGN KEY (BetriebssystemID) REFERENCES Betriebssysteme(ID)
-        )
-    """,
-    "Transceiver": """
-        CREATE TABLE Transceiver (
-            ID INT PRIMARY KEY,
-            InterfaceID INT,
-            ProductNumber CHAR(255),
-            Type CHAR(255),
-            ConnectorType CHAR(255),
-            LWLMode CHAR(255),
-            MaxRange INT,
-            FOREIGN KEY (InterfaceID) REFERENCES Interfaces(ID)
-        )
-    """,
-    "L2_Features": """
-        CREATE TABLE L2_Features (
-            ID INT PRIMARY KEY,
-            STP BOOL,
-            PVST BOOL,
-            RSTP BOOL,
-            RPSTP BOOL,
-            MSTP BOOL,
-            VLAN_Max_Count INT,
-            Jumbo_Frames BOOL,
-            802_1q BOOL,
-            802_3ad BOOL,
-            802_3az BOOL,
-            IGMP_Snooping BOOL,
-            ERPS BOOL,
-            PFC BOOL,
-            DCBX BOOL,
-            ECN BOOL,
-            CDP BOOL
-        )
-    """,
-    "L3_Features": """
-        CREATE TABLE L3_Features (
-            ID INT PRIMARY KEY,
-            StaticRouting BOOL,
-            IPv4 BOOL,
-            IPv6 BOOL,
-            RIPv1 BOOL,
-            RIPv2 BOOL,
-            RIPNG BOOL,
-            OSPFv2 BOOL,
-            OSPFv3 BOOL,
-            BGP BOOL,
-            MPBGP BOOL,
-            QOS BOOL,
-            QOS_Max_Queues INT,
-            LoopbackInterfaces BOOL,
-            VRRP BOOL,
-            ECMP BOOL,
-            VRF BOOL,
-            BFD BOOL,
-            PBR BOOL,
-            ARP BOOL,
-            ICMP BOOL,
-            mDNS BOOL,
-            RouteMaps BOOL
-        )
-    """,
-    "L4_Features": """
-        CREATE TABLE L4_Features (
-            ID INT PRIMARY KEY,
-            TCP BOOL,
-            UDP BOOL,
-            VXLAN BOOL,
-            EVPN BOOL
-        )
-    """,
-    "L7_Features": """
-        CREATE TABLE L7_Features (
-            ID INT PRIMARY KEY,
-            DHCP BOOL,
-            DHCP_Relay BOOL,
-            DHCP_Server BOOL,
-            DNS BOOL,
-            TFTP BOOL,
-            SFTP BOOL,
-            NTP BOOL,
-            PTP BOOL
-        )
-    """,
-    "Security_Features": """
-        CREATE TABLE Security_Features (
-            ID INT PRIMARY KEY,
-            Radius BOOL,
-            Tacacs BOOL,
-            TacacsPlus BOOL,
-            ACLv4 BOOL,
-            ACLv6 BOOL,
-            802_1x_Auth BOOL,
-            802_1x_Supplicant BOOL,
-            Arp_Inspection BOOL,
-            STP_Root_Guard BOOL,
-            STP_BPDU_Guard BOOL
-        )
-    """,
-    "Physics": """
-        CREATE TABLE Physics (
-            ID INT PRIMARY KEY,
-            Height INT,
-            Width INT,
-            Depth INT,
-            Weight INT,
-            Min_Temp INT,
-            Max_Temp INT
-        )
-    """
-}
+def create_tables(cnx):
+    cursor = cnx.cursor()
+    try:
+        cursor.execute(f"USE {DB_NAME}")
+    except mysql.connector.Error as err:
+        print(f"Fehler: {err}")
+        exit(1)
 
-# Tabellen in der Datenbank erstellen
-for table_name, table_sql in tables.items():
-    cursor.execute(table_sql)
-    print(f"Tabelle '{table_name}' erfolgreich erstellt.")
+    for table_name, ddl in TABLES.items():
+        try:
+            print(f"Erstelle Tabelle {table_name}...")
+            cursor.execute(ddl)
+        except mysql.connector.Error as err:
+            print(f"Fehler beim Erstellen von Tabelle {table_name}: {err}")
 
-# Verbindung schließen
-cursor.close()
-connection.close()
+    cursor.close()
+
+# Hauptfunktion
+def main():
+    cnx = connect_to_database()
+    cursor = cnx.cursor()
+
+    try:
+        create_database(cursor)
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_DB_CREATE_EXISTS:
+            print(f"Datenbank {DB_NAME} existiert bereits.")
+        else:
+            print(f"Fehler: {err}")
+            exit(1)
+
+    create_tables(cnx)
+    cnx.close()
+
+if __name__ == "__main__":
+    main()
